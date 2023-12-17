@@ -233,6 +233,74 @@ int Decode_decade;
 int Decode_flag;
 int Decode_digit;
 
+int Decode_00[2*1024]; //为0专门设置的数组
+
+unsigned int Decode_00_Digit_max;
+unsigned int Decode_00_Digit;
+
+void Special_Decode_Process(unsigned char DECODED_DATA) //特殊数解码
+{
+    if (PPP_Recive[Recive_digit + 3] == 101)//百位内没有数据
+    {
+        Recive_digit += 4;
+        Decode_decade = PPP_Recive[Recive_digit] * 100;
+        for (int B = 0; B < 2 * 1024; B++)
+        {
+             Recive_digit++;
+
+             if (PPP_Recive[Recive_digit] == 0x7D || PPP_Recive[Recive_digit] == 0x7E)//遇到下一个数的信息
+             {
+                 if (DECODED_DATA == 0x10)Decode_00[Decode_00_Digit_max] = 65535;//对0进行特殊处理
+                 break;
+             }
+             if (PPP_Recive[Recive_digit] == 101)//遇到进位标志位
+             {
+                 Recive_digit++;
+                 Decode_decade = PPP_Recive[Recive_digit] * 100;//更新百位上的数字.
+                 if (PPP_Recive[Recive_digit + 1] == 200) PPP_Recive[Recive_digit + 1] = 0;
+                 continue;
+             }
+             if (DECODED_DATA == 0x10)//对0进行特殊处理
+             {
+                 Decode_00[Decode_00_Digit_max] = Decode_decade + PPP_Recive[Recive_digit];
+                 Decode_00_Digit_max++;
+             }
+
+             Decode_Recive[Decode_decade + PPP_Recive[Recive_digit]] = DECODED_DATA - 0x10;
+        }
+    }
+    else if (PPP_Recive[Recive_digit + 3] != 101)//百位内有数据
+    {
+        if (PPP_Recive[Recive_digit + 3] == 200) PPP_Recive[Recive_digit + 3] = 0;
+        Recive_digit += 2;
+        Decode_decade = 0;//刷新Decode的百位数字
+        for (int B = 0; B < 2 * 1024; B++)
+        {
+
+             Recive_digit++;
+             if (PPP_Recive[Recive_digit] == 0x7D || PPP_Recive[Recive_digit] == 0x7E)//遇到下一个数的信息
+             {
+                 if (DECODED_DATA == 0x10)Decode_00[Decode_00_Digit_max] = 65535;//对0进行特殊处理
+                 break;
+             }
+             if (PPP_Recive[Recive_digit] == 101)//遇到进位标志位
+             {
+                 Recive_digit++;
+                 Decode_decade = PPP_Recive[Recive_digit] * 100;//更新百位上的数字
+                 if (PPP_Recive[Recive_digit + 1] == 200) PPP_Recive[Recive_digit + 1] = 0;
+                 continue;
+             }
+             if (DECODED_DATA == 0x10)//对0进行特殊处理
+             {
+                 Decode_00[Decode_00_Digit_max] = Decode_decade + PPP_Recive[Recive_digit];
+                 Decode_00_Digit_max++;
+             }
+             Decode_Recive[Decode_decade + PPP_Recive[Recive_digit]] = DECODED_DATA - 0x10;
+        }
+    }
+}
+
+
 void PPP_Protocol_Decode()
 {
 
@@ -256,174 +324,20 @@ void PPP_Protocol_Decode()
     {
         if (PPP_Recive[Recive_digit] == 0x7D)//帧头0x7D,0x8E,帧尾0x7E
         {
-            if (PPP_Recive[Recive_digit+1] == 0x8E)
-            {
-                if (PPP_Recive[Recive_digit+3] == 101)//百位内没有数据
-                {
-                    Recive_digit+=4;
-                    Decode_decade = PPP_Recive[Recive_digit] * 100;
-                    for(int B = 0; B < 2*1024; B++)
-                    {
-                        Recive_digit++;
-
-                        if (PPP_Recive[Recive_digit] == 0x7D || PPP_Recive[Recive_digit] == 0x7E)break;//遇到下一个数的信息
-                        if (PPP_Recive[Recive_digit] == 101)//遇到进位标志位
-                        {
-                            Recive_digit++;
-                            Decode_decade = PPP_Recive[Recive_digit] * 100;//更新百位上的数字
-                            continue;
-                        }
-                        Decode_Recive[Decode_decade + PPP_Recive[Recive_digit]] = 0x8E - 0x10;
-                    }
-                }
-                else if (PPP_Recive[Recive_digit+3] != 101)//百位内有数据
-                {
-                    Recive_digit += 2;
-                    Decode_decade = 0;//刷新Decode的百位数字
-                    for (int B = 0; B < 2*1024; B++)
-                    {
-                        std::cout << "1" << std::endl;
-                        Recive_digit++;
-                        if (PPP_Recive[Recive_digit] == 0x7D || PPP_Recive[Recive_digit] == 0x7E)break;//遇到下一个数的信息
-                        if (PPP_Recive[Recive_digit] == 101)//遇到进位标志位
-                        {
-                            Recive_digit++;
-                            Decode_decade = PPP_Recive[Recive_digit] * 100;//更新百位上的数字
-                            continue;
-                        }
-                        Decode_Recive[Decode_decade + PPP_Recive[Recive_digit]] = 0x8E - 0x10;
-                    }
-                }
-
-            }
-
-            else if (PPP_Recive[Recive_digit+1] == 0x8D)
-            {
-                if (PPP_Recive[Recive_digit+3] == 101)//百位内没有数据
-                {
-                    Recive_digit+=4;
-                    Decode_decade = PPP_Recive[Recive_digit] * 100;
-                    for(int B = 0; B < 2*1024; B++)
-                    {
-                        Recive_digit++;
-
-                        if (PPP_Recive[Recive_digit] == 0x7D || PPP_Recive[Recive_digit] == 0x7E)break;//遇到下一个数的信息
-                        if (PPP_Recive[Recive_digit] == 101)//遇到进位标志位
-                        {
-                            Recive_digit++;
-                            Decode_decade = PPP_Recive[Recive_digit] * 100;//更新百位上的数字
-                            continue;
-                        }
-                        Decode_Recive[Decode_decade + PPP_Recive[Recive_digit]] = 0x8D - 0x10;
-                    }
-                }
-                else if (PPP_Recive[Recive_digit+3] != 101)//百位内有数据
-                {
-                    Recive_digit+=2;
-                    Decode_decade = 0;
-                    for (int B = 0; B < 2*1024; B++)
-                    {
-                        Recive_digit++;
-                        Decode_decade = 0;//刷新Decode的百位数字
-                        if (PPP_Recive[Recive_digit] == 0x7D || PPP_Recive[Recive_digit] == 0x7E)break;//遇到下一个数的信息
-                        if (PPP_Recive[Recive_digit] == 101)//遇到进位标志位
-                        {
-                            Recive_digit++;
-                            Decode_decade = PPP_Recive[Recive_digit] * 100;//更新百位上的数字
-                            continue;
-                        }
-                        Decode_Recive[Decode_decade + PPP_Recive[Recive_digit]] = 0x8D - 0x10;
-                    }
-                }
-
-            }
-
-
-            else if (PPP_Recive[Recive_digit+1] == 0x10)
-            {
-                if (PPP_Recive[Recive_digit+3] == 101)//百位内没有数据
-                {
-                    Recive_digit+=4;
-                    Decode_decade = PPP_Recive[Recive_digit] * 100;
-                    for(int B = 0; B < 2*1024; B++)
-                    {
-                        Recive_digit++;
-
-                        if (PPP_Recive[Recive_digit] == 0x7D || PPP_Recive[Recive_digit] == 0x7E)break;//遇到下一个数的信息
-                        if (PPP_Recive[Recive_digit] == 101)//遇到进位标志位
-                        {
-                            Recive_digit++;
-                            Decode_decade = PPP_Recive[Recive_digit] * 100;//更新百位上的数字
-                            continue;
-                        }
-                        Decode_Recive[Decode_decade + PPP_Recive[Recive_digit]] = 0x10 - 0x09;
-                    }
-                }
-                else if (PPP_Recive[Recive_digit+3] != 101)//百位内有数据
-                {
-                    Recive_digit+=2;
-                    Decode_decade = 0;//刷新Decode的百位数字
-                    for (int B = 0; B < 2*1024; B++)
-                    {
-                        Recive_digit++;
-                        if (PPP_Recive[Recive_digit] == 0x7D || PPP_Recive[Recive_digit] == 0x7E)break;//遇到下一个数的信息
-                        if (PPP_Recive[Recive_digit] == 101)//遇到进位标志位
-                        {
-                            Recive_digit++;
-                            Decode_decade = PPP_Recive[Recive_digit] * 100;//更新百位上的数字
-                            continue;
-                        }
-                        Decode_Recive[Decode_decade + PPP_Recive[Recive_digit]] = 0x10 + 0x10;
-                    }
-                }
-            }
+            if     (PPP_Recive[Recive_digit+1] == 0x8E)Special_Decode_Process(0x8E);
+            else if(PPP_Recive[Recive_digit+1] == 0x8D)Special_Decode_Process(0x8D);
+            else if(PPP_Recive[Recive_digit+1] == 0x10)Special_Decode_Process(0x10);
             else
             {
                 unsigned char Decode_Sequence = PPP_Recive[Recive_digit+1];
-                if (PPP_Recive[Recive_digit+3] == 101)//百位内没有数据
-                {
-                    Recive_digit+=4;
-                    Decode_decade = PPP_Recive[Recive_digit] * 100;
-                    for(int B = 0; B < 2*1024; B++)
-                    {
-                        Recive_digit++;
-
-                        if (PPP_Recive[Recive_digit] == 0x7D || PPP_Recive[Recive_digit] == 0x7E)break;//遇到下一个数的信息
-                        if (PPP_Recive[Recive_digit] == 101)//遇到进位标志位
-                        {
-                            Recive_digit++;
-                            Decode_decade = PPP_Recive[Recive_digit] * 100;//更新百位上的数字
-                            continue;
-                        }
-                        Decode_Recive[Decode_decade + PPP_Recive[Recive_digit]] = Decode_Sequence - 0x10;
-                    }
-                }
-                else if (PPP_Recive[Recive_digit+3] != 101)//百位内有数据
-                {
-                    Recive_digit+=2;
-                    Decode_decade = 0;
-                    for (int B = 0; B < 2*1024; B++)
-                    {
-                        Recive_digit++;
-                        Decode_decade = 0;//刷新Decode的百位数字
-                        if (PPP_Recive[Recive_digit] == 0x7D || PPP_Recive[Recive_digit] == 0x7E)break;//遇到下一个数的信息
-                        if (PPP_Recive[Recive_digit] == 101)//遇到进位标志位
-                        {
-                            Recive_digit++;
-                            Decode_decade = PPP_Recive[Recive_digit] * 100;//更新百位上的数字
-                            continue;
-                        }
-                        Decode_Recive[Decode_decade + PPP_Recive[Recive_digit]] = Decode_Sequence - 0x10;
-                    }
-                }
-
+                Special_Decode_Process(Decode_Sequence);
             }
-
-
         }
+
         else if (PPP_Recive[Recive_digit] == 0x7E)
         {
-            Recive_digit++;
+            int sequence = PPP_Recive[Recive_digit + 1]; //将序列号放入最后
+            Recive_digit+=2;
             for(int A = 0; A < 2*1024; A++)
             {
                 if (Decode_Recive[Decode_digit] != 0)
@@ -431,17 +345,24 @@ void PPP_Protocol_Decode()
                     Decode_digit++;
                     continue;
                 }
+                if (Decode_digit == Decode_00[Decode_00_Digit])//0的特殊处理
+                {
+                    Decode_00_Digit++;
+                    Decode_digit++;
+                    continue;
+                }
                 if (PPP_Recive[Recive_digit] == 0x7E)
                 {
+                    Decode_Recive[Decode_digit] = sequence;
                     Decode_flag = 0;
                     break;
                 }
                 Decode_Recive[Decode_digit] = PPP_Recive[Recive_digit];
                 Recive_digit++;
                 Decode_digit++;
+
             }
         }
-
     }
 }
 
@@ -460,13 +381,12 @@ int  main() {
            //sprintf(PPP_TXT,"%d",PPP_Send[0]);
            //std::cout << PPP_TXT << std::endl;
 
-    //sprintf(PPP_TXT,"%d",Decode_Recive[1]);
-    sprintf(PPP_TXT,"%d",Decode_Recive[1016]);
+    sprintf(PPP_TXT,"%d",Decode_Recive[746]);
     std::cout << PPP_TXT << std::endl;
 
            std::cout << Decode_Recive << std::endl;
            std::cout << strlen(Decode_Recive) << std::endl;
-           char * p = std::find(Decode_Recive, Decode_Recive + strlen(Decode_Recive), 0x10);
+           char * p = std::find(Decode_Recive, Decode_Recive + strlen(Decode_Recive), 0x15);
 
            if (p != Decode_Recive + strlen(Decode_Recive))//判断是否查找成功
            {
