@@ -43,7 +43,7 @@ void PPP_init()
 {
     for(test_T_Count = 0; test_T_Count < input_decade ; test_T_Count++)   //例子数组180*120
         for(test_F_Count = 0; test_F_Count < input_digit ; test_F_Count++)
-            test[test_T_Count][test_F_Count] = 0x78;
+            test[test_T_Count][test_F_Count] = 0x00;
 
     test[0][20] = 0x7E; test[2][22] = 0x7E; test[8][55] = 0x7E;
     test[2][24] = 0x7D; test[7][21] = 0x7D;
@@ -238,6 +238,11 @@ int Decode_00[2*1024]; //为0专门设置的数组
 unsigned int Decode_00_Digit_max;
 unsigned int Decode_00_Digit;
 
+void Decode_Init() //特殊数解码
+{
+    Decode_Recive[0] = 0x7E;
+}
+
 void Special_Decode_Process(unsigned char DECODED_DATA) //特殊数解码
 {
     if (PPP_Recive[Recive_digit + 3] == 101)//百位内没有数据
@@ -333,11 +338,11 @@ void PPP_Protocol_Decode()
                 Special_Decode_Process(Decode_Sequence);
             }
         }
-
+        //if(PPP_Recive[Recive_digit] == 0x7D)Decode_flag = 0;
         else if (PPP_Recive[Recive_digit] == 0x7E)
         {
             int sequence = PPP_Recive[Recive_digit + 1]; //将序列号放入最后
-            Recive_digit+=2;
+            Recive_digit++;
             for(int A = 0; A < 2*1024; A++)
             {
                 if (Decode_Recive[Decode_digit] != 0)
@@ -345,7 +350,7 @@ void PPP_Protocol_Decode()
                     Decode_digit++;
                     continue;
                 }
-                if (Decode_digit == Decode_00[Decode_00_Digit])//0的特殊处理
+                if (Decode_digit == Decode_00[Decode_00_Digit])//0的特殊处理,如果没有[0]位就是65535，如果有就是正常数据
                 {
                     Decode_00_Digit++;
                     Decode_digit++;
@@ -353,7 +358,7 @@ void PPP_Protocol_Decode()
                 }
                 if (PPP_Recive[Recive_digit] == 0x7E)
                 {
-                    Decode_Recive[Decode_digit] = sequence;
+                    //Decode_Recive[Decode_digit] = 0x7E;//sequence;
                     Decode_flag = 0;
                     break;
                 }
@@ -369,6 +374,7 @@ void PPP_Protocol_Decode()
 int  main() {
      //std::cout << "Hello, World!" << std::endl;
      PPP_init();
+     Decode_Init();
      //for(int i = 0;i < 48;i++)
      //{
 
@@ -381,7 +387,7 @@ int  main() {
            //sprintf(PPP_TXT,"%d",PPP_Send[0]);
            //std::cout << PPP_TXT << std::endl;
 
-    sprintf(PPP_TXT,"%d",Decode_Recive[746]);
+    sprintf(PPP_TXT,"%d",Decode_Recive[1016]);
     std::cout << PPP_TXT << std::endl;
 
            std::cout << Decode_Recive << std::endl;
